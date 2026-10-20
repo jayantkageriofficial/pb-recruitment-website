@@ -1,5 +1,11 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
 import type { Problem, LeaderboardEntry } from '@/features/contests/problem.types';
+import {
+  toProblemDetails,
+  toProblemOverview,
+  type ProblemDetailsResponse,
+  type ProblemOverviewResponse,
+} from '@/features/contests/problemAdapter';
 import { Contest } from "@/models/contest";
 import { auth } from '@/lib/firebase';
 import { encodeBase64 } from '@/lib/base64';
@@ -61,13 +67,13 @@ class ContestApiService {
   }
 
   async getContestProblems(contestId: string): Promise<Problem[]> {
-    const response = await this.axiosInstance.get<Problem[]>(`/contests/${contestId}/problems`);
-    return response.data;
+    const response = await this.axiosInstance.get<ProblemOverviewResponse[]>(`/contests/${contestId}/problems`);
+    return response.data.map((problem) => toProblemOverview(problem, contestId));
   }
 
   async getProblemById(contestId: string, problemId: string): Promise<Problem> {
-    const response = await this.axiosInstance.get<Problem>(`/contests/${contestId}/problems/${problemId}`);
-    return response.data;
+    const response = await this.axiosInstance.get<ProblemDetailsResponse>(`/contests/${contestId}/problems/${problemId}`);
+    return toProblemDetails(response.data);
   }
 
   async getContestLeaderboard(contestId: string): Promise<LeaderboardEntry[]> {
@@ -112,6 +118,27 @@ class ContestApiService {
       type: 'code',
       language,
     });
+    return response.data;
+  }
+
+  async runCodeSolution(
+    contestId: string,
+    problemId: string,
+    code: string,
+    language: string,
+    stdin: string,
+  ): Promise<RunCodeResponse> {
+    const response = await this.axiosInstance.post<RunCodeResponse>(
+      '/submission/run',
+      {
+        contest_id: contestId,
+        problem_id: problemId,
+        code: encodeBase64(code),
+        language,
+        stdin,
+      },
+      { timeout: 20_000 },
+    );
     return response.data;
   }
 
@@ -250,6 +277,16 @@ class ContestApiService {
 
 export interface SubmissionResponse {
   submission_id: string;
+}
+
+export interface RunCodeResponse {
+  status: string;
+  stdout?: string | null;
+  stderr?: string | null;
+  compile_output?: string | null;
+  message?: string | null;
+  time?: string | null;
+  memory?: number | null;
 }
 
 export type SubmissionType = 'code' | 'mcq';
