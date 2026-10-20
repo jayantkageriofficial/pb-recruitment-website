@@ -85,18 +85,27 @@ export const CodeProblemView = ({ problem, onSubmit, onRun }: CodeProblemViewPro
   const [resizeDirection, setResizeDirection] = useState<'vertical' | 'horizontal' | null>(null);
   const rightPaneRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const inputRevisionRef = useRef(0);
   const code = codeByLanguage[selectedLanguage] || '';
 
-  const handleLanguageChange = useCallback((newLanguage: string) => {
-    setSelectedLanguage(newLanguage);
+  const invalidateRun = useCallback(() => {
+    inputRevisionRef.current += 1;
+    setOutput('');
+    setIsOutputError(false);
   }, []);
 
+  const handleLanguageChange = useCallback((newLanguage: string) => {
+    invalidateRun();
+    setSelectedLanguage(newLanguage);
+  }, [invalidateRun]);
+
   const handleCodeChange = useCallback((value: string | undefined) => {
+    invalidateRun();
     setCodeByLanguage((current) => ({
       ...current,
       [selectedLanguage]: value || '',
     }));
-  }, [selectedLanguage]);
+  }, [invalidateRun, selectedLanguage]);
 
   const handleRunCode = useCallback(async () => {
     if (!onRun) {
@@ -110,9 +119,11 @@ export const CodeProblemView = ({ problem, onSubmit, onRun }: CodeProblemViewPro
     setActiveTab('output');
     setOutput('Running code...');
     setIsOutputError(false);
+    const inputRevision = inputRevisionRef.current;
 
     try {
       const result = await onRun(code, selectedLanguage, customInput);
+      if (inputRevision !== inputRevisionRef.current) return;
       const sections = ['Status: ' + (result.status || 'Finished')];
       setIsOutputError(!['accepted', 'finished'].includes(result.status.toLowerCase()));
       let hasProgramOutput = false;
@@ -138,6 +149,7 @@ export const CodeProblemView = ({ problem, onSubmit, onRun }: CodeProblemViewPro
 
       setOutput(sections.join('\n\n'));
     } catch (error) {
+      if (inputRevision !== inputRevisionRef.current) return;
       setIsOutputError(true);
       setOutput(getRunErrorMessage(error));
     } finally {
@@ -525,7 +537,10 @@ export const CodeProblemView = ({ problem, onSubmit, onRun }: CodeProblemViewPro
                   </label>
                   <textarea
                     value={customInput}
-                    onChange={(e) => setCustomInput(e.target.value)}
+                    onChange={(e) => {
+                      invalidateRun();
+                      setCustomInput(e.target.value);
+                    }}
                     placeholder="Enter your custom input here..."
                     className="flex-1 bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-white focus:outline-none focus:border-green-400 resize-none"
                   />

@@ -32,19 +32,6 @@ const problemType = (value: string): ProblemType => {
   }
 };
 
-const descriptionText = (value: string): string => {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (typeof parsed === 'object' && parsed !== null) {
-      const description = (parsed as Record<string, unknown>).description;
-      if (typeof description === 'string') return description;
-    }
-  } catch {
-    // Older problems may store their description as plain text.
-  }
-  return value;
-};
-
 export const toProblemOverview = (response: ProblemOverviewResponse, contestId: string): Problem => ({
   ...response,
   contest_id: contestId,
@@ -55,7 +42,7 @@ export const toProblemDetails = (response: ProblemDetailsResponse): Problem => (
   ...response,
   id: response.problem_id,
   type: problemType(response.type),
-  description: descriptionText(response.description ?? ''),
+  description: response.description ?? '',
   time_limit: response.time_limit,
   memory_limit: response.memory_limit,
   examples: (response.testcases ?? [])
