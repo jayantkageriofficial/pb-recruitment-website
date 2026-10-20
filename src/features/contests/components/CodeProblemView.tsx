@@ -55,6 +55,7 @@ int main() {
 
 const getRunErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
+    if (error.response?.status === 404) return 'Code execution is unavailable right now.';
     const responseData: unknown = error.response?.data;
     if (typeof responseData === 'object' && responseData !== null) {
       const data = responseData as Record<string, unknown>;
@@ -115,7 +116,7 @@ export const CodeProblemView = ({ problem, onSubmit, onRun }: CodeProblemViewPro
       const sections = ['Status: ' + (result.status || 'Finished')];
       setIsOutputError(!['accepted', 'finished'].includes(result.status.toLowerCase()));
       let hasProgramOutput = false;
-      if (result.time) sections.push('Runtime: ' + result.time + 's');
+      if (result.runtime > 0) sections.push('Runtime: ' + result.runtime + ' ms');
       if (result.memory) sections.push('Memory: ' + result.memory + ' KB');
       if (result.compile_output?.trim()) {
         hasProgramOutput = true;
@@ -129,11 +130,11 @@ export const CodeProblemView = ({ problem, onSubmit, onRun }: CodeProblemViewPro
         hasProgramOutput = true;
         sections.push(result.stdout);
       }
-      if (result.message?.trim()) {
-        hasProgramOutput = true;
-        sections.push(result.message.trim());
-      }
-      if (!hasProgramOutput) sections.push('(Program finished without output.)');
+      if (!hasProgramOutput) sections.push(
+        result.status.toLowerCase() === 'accepted'
+          ? '(Program finished without output.)'
+          : '(No output was returned.)',
+      );
 
       setOutput(sections.join('\n\n'));
     } catch (error) {

@@ -291,8 +291,8 @@ export const useProblemSubmissions = (contestId: string, problemId: string) => {
   ), [contestId, problemId, submit]);
 
   const runCode = useCallback((code: string, language: string, stdin: string): Promise<RunCodeResponse> => (
-    contestApi.runCodeSolution(contestId, problemId, code, language, stdin)
-  ), [contestId, problemId]);
+    contestApi.runCodeSolution(code, language, stdin)
+  ), []);
 
   const submitMCQ = useCallback((selectedOption: number) => (
     submit(

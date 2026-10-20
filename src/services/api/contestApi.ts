@@ -122,8 +122,6 @@ class ContestApiService {
   }
 
   async runCodeSolution(
-    contestId: string,
-    problemId: string,
     code: string,
     language: string,
     stdin: string,
@@ -131,9 +129,7 @@ class ContestApiService {
     const response = await this.axiosInstance.post<RunCodeResponse>(
       '/submission/run',
       {
-        contest_id: contestId,
-        problem_id: problemId,
-        code: encodeBase64(code),
+        code,
         language,
         stdin,
       },
@@ -281,12 +277,11 @@ export interface SubmissionResponse {
 
 export interface RunCodeResponse {
   status: string;
-  stdout?: string | null;
-  stderr?: string | null;
-  compile_output?: string | null;
-  message?: string | null;
-  time?: string | null;
-  memory?: number | null;
+  stdout: string;
+  stderr: string;
+  compile_output: string;
+  runtime: number;
+  memory: number;
 }
 
 export type SubmissionType = 'code' | 'mcq';
